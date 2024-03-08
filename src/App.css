@@ -4,21 +4,9 @@ body {
 }
 
 #root {
-	display: grid;
-	grid-template-columns: 1fr;
-	grid-template-rows: auto 1fr auto;
-	gap: 1rem;
-	max-width: 1200px;
+	max-width: 1000px;
 	margin-inline: auto;
 	padding-inline: 1rem;
-}
-
-h1 {
-	text-align: center;
-	font-size: 3rem;
-	text-transform: uppercase;
-	letter-spacing: .1rem;
-	margin: 0;
 }
 
 h2 {
@@ -37,6 +25,7 @@ h3 {
 	grid-template-columns: auto 1fr;
 	grid-template-rows: 1fr auto;
 	gap: 2rem;
+	margin-block: 3rem;
 }
 
 #filter {
@@ -51,13 +40,16 @@ h3 {
 		& li {
 			margin-block: .5rem;
 
+			& input {
+				padding: .5rem;
+  			border-radius: .5rem;
+  			border: 1px solid #c0c0c0;
+			}
+
 			& button {
 				width: 100%;
-  			font-size: 1rem;
-  			padding: .5rem;
-  			border: 1px solid #c0c0c0;
-  			border-radius: .5rem;
-				cursor: pointer;
+				padding: .5rem;
+        cursor: pointer;
 			}
 		}
 	}
@@ -78,7 +70,7 @@ h3 {
 		margin: 0;
 		padding: 0;
 		display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: max-content;
 		gap: 1rem;
 
 		& li {
@@ -111,7 +103,12 @@ h3 {
 			flex: 0 0 auto;
 
 			& button {
+				padding: .5rem;
 				cursor: pointer;
+
+				&:disabled {
+					cursor: auto;
+				}
 			}
 		}
 	}

@@ -1,195 +1,193 @@
 import './App.css';
-import { Fragment, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import md5 from 'md5';
 
 const App = () => {
-	const [ids, setIds] = useState(null)
+	const [fetchCheck, setFetchCheck] = useState(false)
 	const [goods, setGoods] = useState(null)
 	const [offset, setOffset] = useState(0)
+	const [filtered, setFiltered] = useState(false)
+	const [product, setProduct] = useState('')
+	const [price, setPrice] = useState('')
+	const [brand, setBrand] = useState('')
 
 	const getKey = () => {
 		const date = new Date()
 		const format = (date) => date < 10 ? `0${date}` : date.toString()
-		const year = date.getFullYear()
-		const month = format(date.getMonth() + 1)
-		const day = format(date.getDate())
+		const year = date.getUTCFullYear()
+		const month = format(date.getUTCMonth() + 1)
+		const day = format(date.getUTCDate())
 		const key = md5(`Valantis_${year}${month}${day}`)
 		return key
 	}
 
-	useEffect(() => {
-		const controller = new AbortController()
-		const signal = controller.signal
-
-		const body = JSON.stringify({
-			'action': 'get_ids',
-			'params': {
-				offset: 0
-			}
-		})
-
-		fetch('https://api.valantis.store:41000/', {
+	const fetchRetry = async (body) => {
+		let result = await fetch('https://api.valantis.store:41000/', {
 			method: 'POST',
 			mode: 'cors',
 			headers: {
 				'X-Auth': getKey(),
 				'Content-Type': 'application/json;charset=UTF-8'
 			},
-			body: body,
-			signal: signal
+			body: body
 		})
-		.then((response) => {
-			return response.json()
-		})
-		.then((data) => {
-			setIds(data.result)
-		})
-		.catch((error) => {
-			if(error.name === 'AbortError') {
-				console.log('successfully aborted')
-			}
-			else {
-				console.info(error)
-			}
-		})
-
-		return () => {
-			controller.abort()
-		}
-	}, [])
+		let response = await result.json()
+		return response
+	}
 
 	useEffect(() => {
-		const controller = new AbortController()
-		const signal = controller.signal
+		setGoods(null)
 
 		const body = JSON.stringify({
-			'action': 'get_ids',
-			'params': {
-				limit: 3,
+			action: 'get_ids',
+			params: {
+				limit: 50,
 				offset: offset
 			}
 		})
 		
-		fetch('https://api.valantis.store:41000/', {
-			method: 'POST',
-			mode: 'cors',
-			headers: {
-				'X-Auth': getKey(),
-				'Content-Type': 'application/json;charset=UTF-8'
-			},
-			body: body,
-			signal: signal
-		})
-		.then((response) => {
-			return response.json()
-		})
+		fetchRetry(body)
 		.then((data) => {
 			const body = JSON.stringify({
-				'action': 'get_items',
-				'params': {
+				action: 'get_items',
+				params: {
 					ids: data.result
 				}
 			})
 			
-			return fetch('https://api.valantis.store:41000/', {
-				method: 'POST',
-				mode: 'cors',
-				headers: {
-					'X-Auth': getKey(),
-					'Content-Type': 'application/json;charset=UTF-8'
-				},
-				body: body,
-				signal: signal
-			})
-		})
-		.then((response) => {
-			return response.json()
+			return fetchRetry(body)
 		})
 		.then((data) => {
-			setGoods(data.result)
+			let cleanIds = []
+			let cleanRes = []
+			data.result.map((item) => {
+				if(!cleanIds.includes(item.id)) {
+					cleanIds.push(item.id)
+					cleanRes.push(item)
+				}
+				else {
+					return false
+				}
+			})
+			setGoods(cleanRes)
 		})
 		.catch((error) => {
-			if(error.name === 'AbortError') {
-				console.log('successfully aborted')
-			}
-			else {
-				console.info(error)
+			console.error(error)
+			setFetchCheck(prev => !prev)
+		})
+
+		return () => {}
+	}, [fetchCheck, offset])
+
+	const filter = () => {
+		setGoods(null)
+		setFiltered(true)
+
+		const body = JSON.stringify({
+			action: 'filter',
+			params: {
+				// product: product,
+				price: Number(price),
+				// brand: brand
 			}
 		})
 
-		return () => {
-			controller.abort()
-		}
-	}, [offset])
+		fetchRetry(body)
+		.then((data) => {
+			const body = JSON.stringify({
+				action: 'get_items',
+				params: {
+					ids: data.result
+				}
+			})
+			
+			return fetchRetry(body)
+		})
+		.then((data) => {
+			let cleanIds = []
+			let cleanRes = []
+			data.result.map((item) => {
+				if(!cleanIds.includes(item.id)) {
+					cleanIds.push(item.id)
+					cleanRes.push(item)
+				}
+				else {
+					return false
+				}
+			})
+			setGoods(cleanRes)
+		})
+		.catch((error) => {
+			console.error(error)
+		})
+	}
+
+	const filterReset = () => {
+		setOffset(0)
+		setFiltered(false)
+	}
 
 	return (
-		<Fragment>
-			<h1>Товары</h1>
-			<section id='catalog'>
-				<div id='filter'>
-					<h2>Фильтр</h2>
+		<section id='catalog'>
+			<div id='filter'>
+				<h2>Фильтр</h2>
+				<form>
 					<ul>
 						<li>
-							<button>
-								Название
+							<input type="text" placeholder='Введите название' onChange={(e) => setProduct(e.target.value)} />
+						</li>
+						<li>
+							<input type="text" placeholder='Введите цену' onChange={(e) => setPrice(e.target.value)} pattern='\d' />
+						</li>
+						<li>
+							<input type="text" placeholder='Введите бренд' onChange={(e) => setBrand(e.target.value)} />
+						</li>
+						<li>
+							<button type='button' onClick={filter}>
+								Применить
 							</button>
 						</li>
 						<li>
-							<button>
-								Цена
-							</button>
-						</li>
-						<li>
-							<button>
-								Бренд
+							<button type="reset" onClick={filterReset}>
+								Отменить
 							</button>
 						</li>
 					</ul>
-				</div>
-				<div id='list'>
-					<ul>
-						{goods ? (
-							goods.map((item) =>
-								<li key={item.id}>
-									<article>
-										<h3>{item.product}</h3>
-										<span>ID: {item.id}</span>
-										<span>Цена: {item.price}</span>
-										<span>Бренд: {item.brand}</span>
-									</article>
-								</li>
-							)
-						) : (
-							<h2 id='loading'>Загрузка...</h2>
-						)}
-					</ul>
-				</div>
-				<div id='pagination'>
-					{/* {ids ? (
-						ids.map((item) =>
-							<p key={item}>{item}</p>
+				</form>
+			</div>
+			<div id='list'>
+				<ul>
+					{goods ? (
+						goods.map((item) =>
+							<li key={item.id}>
+								<article>
+									<h3>{item.product}</h3>
+									<span>ID: {item.id}</span>
+									<span>Цена: {item.price}</span>
+									<span>Бренд: {item.brand}</span>
+								</article>
+							</li>
 						)
 					) : (
-						<h2>Загрузка...</h2>
-					)} */}
-					<ul>
-						<li>
-							<button onClick={() => setOffset(0)}>
-								Назад
-							</button>
-						</li>
-						<li>
-							<input type="text" defaultValue='0' />
-						</li>
-						<li>
-							<button onClick={() => setOffset(50)}>
-								Дальше
-							</button>
-						</li>
-					</ul>
-				</div>
-			</section>
-		</Fragment>
+						<h2 id='loading'>Загрузка...</h2>
+					)}
+				</ul>
+			</div>
+			<div id='pagination'>
+				<ul>
+					<li>
+						<button onClick={() => setOffset(prev => prev - 50)} disabled={offset === 0 || filtered === true ? true : false}>
+							Назад
+						</button>
+					</li>
+					<li>
+						<button onClick={() => setOffset(prev => prev + 50)} disabled={filtered === true ? true : false}>
+							Далее
+						</button>
+					</li>
+				</ul>
+			</div>
+		</section>
 	);
 }
 
