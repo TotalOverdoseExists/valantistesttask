@@ -74,7 +74,7 @@ const App = () => {
 		})
 
 		return () => {}
-	}, [fetchCheck, offset])
+	}, [fetchCheck, offset, filtered])
 
 	const filter = () => {
 		setGoods(null)
