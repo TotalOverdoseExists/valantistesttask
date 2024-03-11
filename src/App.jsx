@@ -1,15 +1,12 @@
-import './App.css';
-import { useEffect, useState } from 'react';
-import md5 from 'md5';
+import './App.css'
+import { useEffect, useState } from 'react'
+import md5 from 'md5'
 
 const App = () => {
 	const [fetchCheck, setFetchCheck] = useState(false)
 	const [goods, setGoods] = useState(null)
 	const [offset, setOffset] = useState(0)
 	const [filtered, setFiltered] = useState(false)
-	const [product, setProduct] = useState('')
-	const [price, setPrice] = useState('')
-	const [brand, setBrand] = useState('')
 
 	const getKey = () => {
 		const date = new Date()
@@ -83,16 +80,28 @@ const App = () => {
 		setGoods(null)
 		setFiltered(true)
 
-		const body = JSON.stringify({
+		const product = document.querySelector('#filterName')
+		const price = document.querySelector('#filterPrice')
+		const brand = document.querySelector('#filterBrand')
+		const value = document.querySelector('#filterValue')
+		let body = {
 			action: 'filter',
-			params: {
-				// product: product,
-				price: Number(price),
-				// brand: brand
-			}
-		})
+			params: {}
+		}
 
-		fetchRetry(body)
+		if(product.checked) {
+			body.params.product = value.value
+		}
+		if(price.checked) {
+			body.params.price = Number(value.value)
+		}
+		if(brand.checked) {
+			body.params.brand = value.value
+		}
+
+		const json = JSON.stringify(body)
+
+		fetchRetry(json)
 		.then((data) => {
 			const body = JSON.stringify({
 				action: 'get_items',
@@ -134,13 +143,19 @@ const App = () => {
 				<form>
 					<ul>
 						<li>
-							<input type="text" placeholder='Введите название' onChange={(e) => setProduct(e.target.value)} />
+							<input id='filterName' name='filter' type='radio' />
+							<label htmlFor="filterName">По названию</label>
 						</li>
 						<li>
-							<input type="text" placeholder='Введите цену' onChange={(e) => setPrice(e.target.value)} pattern='\d' />
+							<input id='filterPrice' name='filter' type='radio' />
+							<label htmlFor="filterPrice">По цене</label>
 						</li>
 						<li>
-							<input type="text" placeholder='Введите бренд' onChange={(e) => setBrand(e.target.value)} />
+							<input id='filterBrand' name='filter' type='radio' />
+							<label htmlFor="filterBrand">По бренду</label>
+						</li>
+						<li>
+							<input id='filterValue' type="text" placeholder='Введите значение' />
 						</li>
 						<li>
 							<button type='button' onClick={filter}>
@@ -188,7 +203,7 @@ const App = () => {
 				</ul>
 			</div>
 		</section>
-	);
+	)
 }
 
-export default App;
+export default App
